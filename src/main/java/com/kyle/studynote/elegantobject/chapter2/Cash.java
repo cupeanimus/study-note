@@ -11,3 +11,4 @@ public class Cash {
     //java의 결함을 해결하기 위해 == 대신 equals() 메소드를 오버라이드하길 권하고, 역자는 @EqualsAndHashCode 어노테이션을 사용한다고 한다.
 
 }
+
