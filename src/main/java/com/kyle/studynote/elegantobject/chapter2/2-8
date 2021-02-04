@@ -1,0 +1,63 @@
+2.8 모의 객체(Mock) 대신 페이크 객체(Fake)를 사용하자
+
+class Cash {
+    private final Exchange exchange;
+    private final int cents;
+    public Cash(Exchange exch, int cnts) {
+        this.exchange = exch;
+        this.cents = cnts;
+    }
+    public Cash in(String currency) {
+        return new Cash(
+            this.exchange;
+            this.cents * this.exchange.rate(
+            "USD", currency
+            )
+        );
+    }
+}
+
+Cash dollar = new Cash(new NYSE("secret"), 100);
+Cash euro = dollar.in("EUR");
+
+여기서 NYSE 서버가 개입하지 않은 상황에서 Cash 클래스를 테스트하고 싶다면
+
+Exchange exchange = Mockito.mock(Exchange.class);
+Mockito.doReturn(1.15)
+    .when(exchange)
+    .rate("USD", "EUR")
+   Cash dollar = new Cash(exchange, 500);
+   Cash euro = dollar.in("EUR");
+   assert "5.75".equals(euro.toString));
+
+위와 같이 모의 객체를 사용 할 수 있다.
+하지만, 페이크 객체를 사용한다면
+interface Exchange {
+    float rate(String origin, String target);
+
+    final class Fake implements Exchange {
+    @Override
+    float rate(String origin, String target) {
+    return 1.2345;
+    }
+  }
+
+}
+
+중첩된 fake class는 인터페이스의 일부이며 인터페이스와 함께 지공된다.
+이 페이크 클래스는 단위 테스트 안에서 Exchange를 쉽게 사용 할 수 있도록 지원한다.
+
+모킹 대신 페이크 클래스를 사용한 단위테스트는
+Exchange exchange new Exchange.Fake();
+Cash dollar -new Cash(exchange, 500);
+Cash euro = dollar.in("EUR")l
+aserrt "6.17".equals(euro.toString());
+
+이와같이 단위테스트를 짧게 만들 수 있다. 이는 유지보수성의 향상으로 이어진다.
+
+단위테스트는 실패해선 안된다.
+실제 클래스를 변경하였을때, 모킹으로 테스트할 땐 놓치기 쉽지만
+Fake를 사용한다면 변경하면서 자연스레 Fake 클래스도 구현하므로 단위테스트가 실패할 일이 없다
+(현재 단위테스트에 갖고 있는 불만 중 하나가, 모든 개발이 완료 된후 유지보수로 수정하며 단위테스트를 놓칠때가 많고, 소스 변화로 많은 테스트들이
+실패하고 이에 대한 불만을 갖게 된다. Fake 클래스는 아주 좋은 방법같다)
+

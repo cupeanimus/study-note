@@ -1,0 +1,53 @@
+2.7 문서를 작성하는 대신 테스트를 만들자
+
+이상적인 코드는 스스로 설명하기 때문에 어떤 추가 문서도 필요 없다. 나도 여기 동의하고 있고, 문서화 또는 주석을 다는 것을 싫어한다.
+(사실은 이 핑계로 게으름을 부리는 것이다.)
+Employee jeff = department.employee("Jeff");
+jeff.giveRaise(new Cash("$5000"));
+if (jeff.performance() < 3.5) {
+    jeff.fire();
+}
+
+이와같이 코드 자체만으로 의미가 명확하게 전달된다면 문서화가 필요 없다.
+하지만
+class Helper {
+    int saveAndCheck(float x) { .. }
+    float extract(String text) { .. }
+    boolean convert(int value, boolean extra) { .. }
+}
+
+위 소스는 메서드 이름도 형편없고 클래스 이름도 엉망이며, 클래스 전반적인 설계도 형편없다.
+(자세히 살펴보면 현재 짜는 코딩 중에 위와같은 형태가 많다. 반성..)
+
+좋은 클래스는 목적이 명확하고, 작고, 설계가 우하해야한다.
+class webPage {
+    String content() { .. }
+    void update(String content) { .. }
+}
+
+따라서 코드를 문서화 하는 대신 코드를 깔끔하게 만들어야 한다.
+깔금하게 만드는 것에는 테스트 코드가 포함된다.
+
+class CashTest {
+    @Test
+    public void summarizes() {
+    assertThat(
+    new Cash("$5").plus(new Cash("$3")),
+    equalTo(new Cash("$8"))
+    );
+    }
+    @Test
+    public void deducts() {
+    assertThat(
+    new Cash("$7").plus(new Cash("-$11")),
+    equalTo(new Cash("-$4"))
+    );
+    }
+    @Test
+    public void multiplies() {
+    assertThat(
+    new Cash("$2").mul(3),
+    equalTo(new Cash("$6"))
+    );
+    }
+}
