@@ -6,6 +6,7 @@ cotr의 주된 작업은 제공된 인자를 사용해서 캡슐화하고 있는
 (util성 기능을 담당하는 class 이름은 어떻게 지어야 할까?)
 
 아래는 하나의 주 cotr(생성자) 다수의 부 cotr(one primary, many secondary)' 원칙을 따르지 않은 코드제 예제
+    
     public class Cash { //클래스가 무엇인지에 대한 기반 - 지향
     
         private int dollars;
