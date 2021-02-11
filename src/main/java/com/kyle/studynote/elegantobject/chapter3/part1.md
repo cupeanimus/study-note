@@ -56,4 +56,19 @@ OOP를 이해하지 못한 객체 패러다임의 남용일뿐이다.
 정적 메서드 대신 사용할 수 있는 매우 유용한 개념. 
 싱글톤 안에는 하나의 정적 메서드가 존재하며, 싱글톤의 형태는 일반적인 객체와 거의 유사해 보인다.
 
-     
+    class Math {
+        private static Math INSTANCE = new Math();
+        private Math() {};
+        public staitc Math getInstance() {
+            return Math.INSTANCE;
+        }
+        public int max(int a, int b) {
+            if( a < b) {
+                return b;
+                }
+            return a;
+        }        
+    }
+    
+Math 클래스는 싱글톤의 대표적인 예.
+       
