@@ -156,7 +156,35 @@ OOP에는 전역 범위가 없다. 따라서 전역변수를 위한 자리역시
 그렇다면 대안은 무엇일까?
 캡슐화를 사용하는 것이다.
 
+3.2.5 함수형 프로그래밍
+
+    class Max implements Number {
+        private final int a;
+        private final int b;
+        public Max(int left, int right) {
+            this.a = left;
+            this.b = right;
+        }
+        @Override
+        public int intValue() {
+            return this.a > this.b ? this.a : this.b;
+        }
+    }
     
+    Number x = new Max(5,9);
+
+    동일한 기능을 수행하는 함수를 Lisp으로 구현하면
+    (defn max
+        (a b)
+        (if (> a b) a b))
+Lisp 코드가 훨씬 짧은데 객체를 사용하는 이유는?
+FP(함수형 프로그래밍)보다 OOP의 표현력이 더 뛰어나고 강력하기 때문
+     
+        
+            
+       
+        
+              
 
                        
         
