@@ -89,5 +89,133 @@ dollars()는 데이터를 노출하지 않지만, getDollars()는 데이터를 �
 (setter를 사용하지 말라는 말은 많이 접했다. 이는 객체의 재사용으로 인한 리크스, 잘못된 코딩이라고 여겼고 피해야 한다고 생각했다. 
 하지만 getter를 사용하지 말아야 한다는 말을 보거나 들었을 땐 어떻게? 그럼 대안은? 이라는 의구심을 지울 수 없어고 편리를 위해 사용하는게 좋다고 생각했다.
 이 글을 통해 OOP에서 getter역할을 지우라는 것이 아닌 getter 워딩의 의미를 지워야 한다라는 생각을 하게 된다.)
+
+3.6 부 ctor 밖에서는 new를 사용하지 말자.
+    
+    class Cash {
+        private final int dollars;
+        
+        public int euro() {
+            return new Exchange().rate("USD", "EUR") * this.dollars; 140
+        }    
+    }
+    
+이 예제는 의존성에 문제가 있는 코드의 전형적인 모습을 잘 보여주고 있다.
+예제의 euro()메서드 안에서는 new 연산자를 이용해 Exchange 인스턴스를 생성하고 있다. 
+이게 왜 문제일까? 
+사실 클래스가 작고 단순하며 네트워크나 디스크, 데이터베이스 등의 값비싼 자원을 사용하지 않는다면 전혀 문제가 되지 않는다.
+
+문제를 일으킨 범인의 이름은 '하드코딩된 의존성'이다. Cash 클래스는 Exchange 클래스에 직접 연결되어 있기 때문에, 의존성을 끊기 위해서는
+Cash 클래스의 내부 코드를 변경할 수 밖에 없다.
+Cash 클래스의 소스 코드가 없는 상황에서 사용하는 것을 상상해보자
+
+    Cash five = new Cash("5.00");
+    print("$5 equals to %d", five.euro());
+    
+이 코드는 print() 메서드의 단위 테스트에서 발췌한 것으로, 테스트를 실행할 때마다 매번 뉴욕 증권 거래소 서버와 네트워크 통신이 발생한다.
+여기서 NYSE 서버와 네트워크 통신을 하지 않으려 한다면 현재 설계에선 불가능하고, Cash 코드를 수정할 수 밖에 없다.
+클래스가 작다면 큰 문제가 아니지만, 더 큰규모에서는 하드코딩된 의존성이 소프트웨어를 테스트하고 유지보수 어렵게 만든다.
+이 문제의 근본 원인은 new 연산자이다.
+그럼 객체들이 언제 어디서나 다른 객체를 인스턴스화 할 수 있도록 허용해 놓고, 정작 객체들이 마음대로 생성하려고 하면 못 마땅한 이유는 무엇일까?
+예제에서는 Cash가 Exchange의 인스턴스를 직접 생성한다. 그리고 이 점이 바로 문제다.
+메서드 내부에서 new 연산자를 사용할 수 없도록 금지 했다고 가정하자. 이제 객체가 새로운 객체를 직접 생성할 수 없기 때문에, 
+새로운 객체를 ctor의 인자로 전달 받아 private 프로퍼티 안에 캡슐화할 수 밖에 없을 것이다. 다음은 수정된 Cash 클래스이다.
+    
+    class Cash {
+        private final int dollars;
+        private final Exchange exchange;
+        
+        Cash(int value, Exchange exch) {
+            this.dollars = value;
+            this.exchange = exch;
+        }    
+        
+        public int euro() {
+            return this,exchange.rate("USD", "EUR") * this.dollars; 
+        }    
+    }
+
+문제가 해결됐다. 다음은 print를 테스트하는 올바른 코드다.
+
+    Cash five = new Cash(5, new FakeExchange());
+    print("$5 equals to %d", five.euro());
+
+수정한 코드에서는 ctor의 두 번째 인자에서 Exchange 인스턴스를 전달해야 한다. Cash 클래스는 더이상 Exchange 인스턴스를 직접 생성할 수 없다.
+오직 ctor을 통해 제공된 Exchange와만 협력할 수 있다.
+다시말해 객체가 필요한 의존성을 직접 생성하는 대신, ctor을 통해 의존성을 주입한다.
+이와 같이 의존성을 주입하는 것은 좋은 프랙티스이다. 모든 객체를 이런 방법으로 설계해야 한다. 섹션 1.2에서 설명한 것처럼 편의를 위해 부 ctor을 여러개 추가할 수 있다.
+
+    class Cash {
+        private final int dollars;
+        private final Exchange exchange;
      
+        Cash() {//부 ctor
+        }
+        
+        Cash(int value) {//부 ctor
+            this(value, new NYSE());
+        }
+        
+        Cash(int value, Exchange exch) { //주
+            this.dollars = value;
+            this.exchange = exch;
+        }    
+        
+        public int euro() {
+            return this,exchange.rate("USD", "EUR") * this.dollars; 
+        }    
+    }                 
+
+앞의 예제를 살펴보면 우직 부 ctor 안에서만 new 연산자를 사용하고 있다는 것을 알 수 있다. 부 ctor을 제외한 어떤 곳에서도 new를 사용할 수 없도록 금지한다면,
+객체들은 상호간에 충분히 분리되고 테스트 용이성과 유지보수성을 크게 향상시킬 수 있다.
+
+객체가 다른 객체를 인스턴스화해야만 하는 경우에는 어떻게 해야할까?
+다음은 네트워크 소켓으로 인입되는 요청 스트림을 표현한 객체다.
+
+    class Requests {
+    private final Socket socket;
+    
+        public Requests(Socket skt) {
+            this.socket = skt;
+        }
+        
+        public Request next() {
+            return new SimpleRequest(/* 소켓에서 데이터를 읽는다 */);
+        }
+    }
+Requests 클래스는 next() 메서드를 호출할 때마다 매번 새로운 Request 객체를 생성해서 반환해야 한다.
+객체를 생성하기 위해서는 반드시 new 연산자가 필요하지만 next() 메서드는 ctor이 아니다. 따라서 이 설계는 앞의 규칙을 위반한다.
+해결하면
+    
+    class Requests {
+        private final Socket socket;
+        private final Mapping<String, Request> mapping
+        
+        public Request(Socket skt) {
+            this(skt,
+                new Mapping<String, Request>() {
+                    @Override
+                    public Request map(String data) {
+                        return new SimpleRequest(data);
+                    }
+                });
+        }                
+        
+        public Request(Socket skt, Mapping<String, Request> mpg) {
+            this.socekt = skt;
+            this.mapping = mpg;
+        }
+            
+        public Request next() {
+            return this.mapping.map(/* 소켓에서 데이터를 읽는다 */);
+        }
+    }                    
+Requests 클래스는 텍스트 데이터를 Request 인스턴스로 변환하는 Mapping 인스턴스를 캡슐화한다. new 연산자는 오직 부 ctor 내부에서만 사용된다.
+개선된 설계에서는 더 쉽게 Request 클래스의 설정을 변경할 수 있으며 하드코딩된 의존성도 존재하지 않는다.
+SimpleRequest 대신 테스트에 적합한 객체를 반환하도록 구현한 Mapping 인스턴스를 주입하는 것도 가능하다.
+우리는 메서드나 주 생성자 안에서 new를 사용하는 매순간마다 뭔가를 잘못하고 있다는 사실을 떠올려야한다.
+new를 합법적으로 사용할 수 있는 유일한 곳은 부 ctor뿐이다.
+
+이 규칙이 의존성 주입과 제어 역전에 관해 알아야 하는 전부라고 할 수 있다.
+부 ctor에서만 new를 사용해야 한다는 간단한 규칙을 불변 객체와 조합하면, 코드는 깔끔해지고 언제라도 의존성을 '주입'할 수 있게 될 것이다.
                 
