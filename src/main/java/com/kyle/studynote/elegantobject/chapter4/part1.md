@@ -188,5 +188,127 @@ AOP는 단순하면서 강력한 프로그래밍 패러다임으로 OOP와 잘 �
 
 4.2.5 하나의 예외 타입만으로도 충분하다.
 단 한번만 복구한다면 어떤 예외라도 담을 수 있는 예외 객체만 있으면 된다. 올바르게 예외를 체이닝했다면 예외의 타입을 알아야 할 필요가 없다.
-                                                         
+
+4.3 final이나 abstract이거나
+상속은 해롭기 때문에 사용해서는 안된다는 이야기를 종종 듣는다. 사람들은 대부분의 경우 캡슐화가 상속보다 더 나은 대안이라고 이야기한다.
+상속에서 문제를 일으키는 주범은 가상 메서드이다.
+
+    class Document {
+        public int length() {
+            return this.content().length();
+        }
+        public byte[] content() {
+            //문서의 내용을
+            //바이트 배열로 로드한다
+        }
+    }
+이 예제는 문서 추상화를 위해서는 완벽한 설계가 아니지만, 상속이 코드 가독성측면에서 어떤 문제를 일으키는지 살펴보기에는 충분하다.
+이제 암호돠된 문서를 읽을 수 있도록 이 클래스를 확장해보자
+    
+    class EncryptedDocument extends Document {
+        @Override
+        public byte[] content() {
+            //문서를 로드해서,
+            //즉시 복호화하고,
+            //복호화한 내용을 반환한다.
+        }
+    }
+
+이 설계는 합당해 보인다. 하지만 content() 메서드를 오버라이딩 했기 때문에 Document 클래스로부터 상속된 length() 메서드의 행동이 변해버렸다.
+결과적으로 EncryptedDocument 클래스의 length() 메서드는 디스크에 저장되어 있는 원래 문서의 길이가 아니라 해독한 문서의 길이를 반환한다.
+
+자식 클래스인 EncryptedDocument 안에서 length() 메서드에 어떤 문제가 있는지 쉽게 이해할 수 있을까? 
+직관적으로 상속은 자식 클래스가 부모 클래스의 코드를 계승받는 하향식 프로레스이다. 자식이 부모의 유산에 접근하는 일반적인 상속과 달리, 메서드 오버라이딩은 부모가 자식의 코드에 접근하는 것이 가능하게 한다.
+말하자면 이런 정반대의 사고 방식은 상식에 크게 어긋나고 상속이 OOP를 지탱하는 편리한 도구에서 유지보수성을 해치는 골치덩어리로 추락하는 곳이 이 지점이다.
+하지만 이 문제를 해결할 수 있는 방법이 있다. 클래스와 메서드를 final이나 abstract 둘 중 하나로만 제한한다면 문제가 발생할 수 있는 가능성을 없앨 수 있다.
+먼저 Document 클래스가 final이라면 상속을 받을 수 없다. 반면에 content()메서드가 abstract라면 Document 클래스 안에서는 content() 메서드를 구현할 수 없기 때문에 length() 메서드를 이해하는데 혼란스럽지 않다.
+기본적으로 클래스가 가질 수 있는 신분에는 세가지가 있다. final이거나 abstract이거나 둘 중 어느쪽도 아니거나. 
+final 클래스는 사용자 관점에서 '블랙박스'이다. final클래스는 상속을 통해 수정할 수 없다. 불투명하고 독립적이며 자신이 어떻게 행동해야 하는지 알고 있고, 어떤 도움도 필요로 하지 않는다. 기술적으로 final 클래스 안의 어떤 메서드도 오버라이딩 할 수 없다. 메서드는 영원히 final이다.
+abstract 클래스는 '글래스 박스'이고 불완전하다. 스스로 행동할 수 없기 때문에 누군가의 도움이 필요하며 일부 요소가 누락되어 있다. 기술적인 관점에서 abstract클래스는 아직 클래스가 아니다. 제대로 된 클래스를 생성하기 위해 사용할 수 있는 원재료라고 할 수 있다.
+기술적으로 abstract 클래스의 특정 메서드를 오버라이딩 할 수 있지만 다른 메서드는 모두 final이다.
+필자는 final도 abstract도 아닌 세번째 신분에 대해서는 강력하게 반대하는데, 이 클래스는 블랙박스나 글래스 박스 둘 중 어느 쪽도 아니기 때문이다. 다르게 표현하면 블랙 박스와 글래스 박스 둘 중 어느쪽도 될 수 있기 때문에 매우 혼란스러울 수 밖에 없다.
+Java가 final이나 abstract 어느 쪽도 아닌 클래스와 메서드의 생성을 금지했다면 Document 클래스를 다음과 같이 설계 했을 것이다.
+
+    final class Document {
+        public int length() { /* 코드는 항상 동일 */}
+        public byte[] content() { /* 코드는 항상 동일 */}
+    }
+                     
+이제 EncryptedDocument 클래스를 추가해보자. EncryptedDocument는 Document지만 final 클래스를 상속받을 수 없다. 따라서 인터페이스를 추가해야한다.
+
+    interface Docuement {
+        int length();
+        byte[] content();
+    }
+    
+이제 Document의 이름을 DefaultDocument로 변경하고, Document 인터페이스를 구현한다.
+    
+    final class DefaultDocument implements Document {
+        @Override
+        pulbic int length() { /* 코드는 항상 동일 */}
         
+        @Override
+        public byte[] content() { /* 코드는 항상 동일 */}       
+    }
+    
+마지막 DefaultDocument를 재사용해서 EncryptedDocument를 구현해보자.
+
+    final class EncryptedDocument implements Document {
+        private final Document plain;
+        EncryptedDocument(Document doc) {
+            this.plain = doc;
+        }
+        
+        @Override
+        pulbic int length() {
+            return this.plain.length(); 
+        }
+        
+        @Override
+        public byte[] content() {
+            byte[] raw = this.plain.content();
+            return /* 원래 내용을 복호화한다 */ 
+        }                     
+DefaultDocument와 EncryptedDocument 모두 final이기 때문에 확장이 불가능한 사실을 주목하자.
+이 예제는 의무적으로 final과 abstract를 사용하도록 강제하면 대부분의 위치에서 상속을 사용할 수 없다는 사실을 잘 보여준다.
+만약 모든 클래스가 final이라면 오로지 캡슐화만을 이용할 수 있다.
+이 원칙을 지킨다면 상속을 사용할 일이 거의 없을 것이다.
+상속이 적절한 경우는 언제일까? 클래스의 행동을 확장하지 않고 정제(refine) 할 때이다. 
+확장이란 새로운 행동을 추가해서 기존의 행동을 부분적으로 보완하는일이고, 정제란 부분적으로 불완전한 행동을 완전하게 만드는 일을 의미한다.
+
+    abstract class Document {
+        public abstract byte[] content();
+        public final int length() {
+            return this.content().length;                                                             
+        }
+    }
+    
+이제 DefaultDocument 클래스를 추가해서 Document를 정제한다.
+    
+    final class DefaultDocument extents Document {
+        @Override
+        public byte[] content() {
+            //디스크에서 내용을 로드한다
+        }
+    }
+Document를 다른 방식으로 정제하는 EncryptedDocument 클래스를 추가한다.
+    
+    final class EncryptedDocument extent Document {
+        @Override
+        public byte[] content() {
+            //디스크에서 내용을 로드하고,
+            //내용을 암호화한 후 반환한다
+        }
+    }
+이 설계에서도 length() 메서드가 실제 길이 대신 암호화된 문서의 크기를 반환하기 때문에 앞의 예제와 동일한 문제가 발생한다고 생각할지도 모른다. 
+하지만 의식하고 있다는 점이 다르다.
+확장보다 개선이 훨씬 더 깔끔한 이유가 바로 이것이다.
+
+요약하면, Java를 비롯한 많은 언어에서 final과 abstract 어느쪽에도 해당되지 않는 클래스와 메서드를 만들 수 있도록 허용한 것은 실수이다. 
+우리는 의도를 명확하게 표현해야 한다. 다시 말해서 메서드는 올바른 방식으로 설계하거나, 아니면 아예 설계하지 말아야한다.
+
+4.4 RAII를 사용하자
+C++에서는 파괴자를 사용하고, Java에서는 AutoCloseable을 사용하기 바란다.
+
+            
+                      
