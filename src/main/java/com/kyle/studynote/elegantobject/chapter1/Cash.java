@@ -18,6 +18,8 @@ public class Cash { //클래스가 무엇인지에 대한 기반 - 지향
 
 //유지보수를 위해 복잡성과 중복제거를 고려
 
+
+
     Cash(float dlr){
         this((int) dlr);
     }
