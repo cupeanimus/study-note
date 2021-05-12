@@ -10,7 +10,7 @@ class WebPage {
     }
 
     @Override
-    public void equals(Object obj) {
+    public boolean equals(Object obj) {
         return this.uri.equals(WebPage.class.cast(obj).uri);
     }
 
